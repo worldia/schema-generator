@@ -156,8 +156,16 @@ class TypesGenerator
             $class['label'] = $comment ? $comment->getValue() : '';
             $class['resource'] = $type;
             $class['config'] = $typeConfig;
+            $class['isEnum'] = $this->isEnum($type) || $typeConfig['enum'];
 
-            $class['isEnum'] = $this->isEnum($type);
+            foreach ($typeConfig['constants'] as $name => $value) {
+                $class['constants'][$name] = [
+                    'name' => strtoupper($name),
+                    'value' => $value,
+                    'resource' => null,
+                ];
+            }
+
             if ($class['isEnum']) {
                 $class['namespace'] = $typeConfig['namespace'] ?? $config['namespaces']['enum'];
                 $class['parent'] = 'Enum';

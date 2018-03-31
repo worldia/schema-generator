@@ -62,7 +62,9 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
      */
     public function generateConstantAnnotations(string $className, string $constantName): array
     {
-        $resource = $this->classes[$className]['constants'][$constantName]['resource'];
+        if (!$resource = $this->classes[$className]['constants'][$constantName]['resource']) {
+            return [];
+        }
 
         $annotations = $this->formatDoc((string) $resource->get('rdfs:comment'), true);
         $annotations[0] = sprintf('@var string %s', $annotations[0]);
