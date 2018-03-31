@@ -33,7 +33,6 @@ use {{ use }};
     const {{ constant.name }} = '{{ constant.value }}';
 
 {% endfor %}
-
 {% for field in class.fields %}
     /**
 {% for annotation in field.annotations %}
@@ -43,22 +42,21 @@ use {{ use }};
     {{ config.fieldVisibility }} ${{ field.name }}{% if field.isArray and (field.isEnum or not field.typeHint or not config.doctrine.useCollection) %} = []{% endif %};
 
 {% endfor %}
-
 {% if config.doctrine.useCollection and class.hasConstructor %}
     public function __construct()
     {
 {% if class.parentHasConstructor %}
         parent::__construct();
-
 {% endif %}
 {% for field in class.fields %}
 {% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
+
         $this->{{ field.name }} = new ArrayCollection();
 {% endif %}
 {% endfor %}
     }
-{% endif %}
 
+{% endif %}
 {% if config.accessorMethods %}
 {% for field in class.fields %}
 {% if field.isWritable %}
@@ -109,8 +107,13 @@ use {{ use }};
      */
     public function set{{ field.name|ucfirst }}({% if field.typeHint %}{% if field.isNullable %}?{% endif %}{{ field.typeHint }} {% endif %}${{ field.name }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
-        $this->{{ field.name }} = ${{ field.name }};
+{% if field.isEnum %}
+        if (!defined(sprintf('{{ field.range }}::%s', ${{ field.name }}))) {
+            throw new \InvalidArgumentException(sprintf('"%s" is not a valid value for "{{ field.name }}".', ${{ field.name }}));
+        }
 
+{% endif %}
+        $this->{{ field.name }} = ${{ field.name }};
 {% if config.fluentMutatorMethods %}
 
         return $this;
