@@ -21,4 +21,44 @@ namespace {{ class.interfaceNamespace }};
 {% endif %}
 interface {{ class.interfaceName }}
 {
+{% if config.addMethodsInInterfaces %}
+{% if config.accessorMethods %}
+{% for field in class.fields %}
+{% if field.isWritable %}
+{% if field.isArray %}
+    /**
+{% for annotation in field.adderAnnotations %}
+     * {{ annotation }}
+{% endfor %}
+     */
+    public function add{{ field.name|singularize|ucfirst }}({% if field.typeHint and not field.isEnum %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %};
+
+    /**
+{% for annotation in field.removerAnnotations %}
+     * {{ annotation }}
+{% endfor %}
+     */
+    public function remove{{ field.name|singularize|ucfirst }}({% if field.typeHint %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %};
+{% else %}
+    /**
+{% for annotation in field.setterAnnotations %}
+     * {{ annotation }}
+{% endfor %}
+     */
+    public function set{{ field.name|ucfirst }}({% if field.typeHint %}{% if field.isNullable %}?{% endif %}{{ field.typeHint }} {% endif %}${{ field.name }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %};
+{% endif %}
+{% endif %}
+
+{% if field.isReadable %}
+    /**
+{% for annotation in field.getterAnnotations %}
+     * {{ annotation }}
+{% endfor %}
+     */
+    public function get{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %};
+
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}
 }
