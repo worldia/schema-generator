@@ -140,7 +140,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
     {
         $typeHint = $this->classes[$className]['fields'][$fieldName][$adderOrRemover ? 'adderRemoverTypeHint' : 'typeHint'] ?? false;
 
-        return false === $typeHint || 'array' === $typeHint;
+        return $this->config['addUselessPhpDoc'] || false === $typeHint || 'array' === $typeHint;
     }
 
     /**

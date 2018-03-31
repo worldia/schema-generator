@@ -95,6 +95,7 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                     ->end()
                 ->end()
                 ->booleanNode('useInterface')->defaultFalse()->info('Generate interfaces and use Doctrine\'s Resolve Target Entity feature')->end()
+                ->booleanNode('addUselessPhpDoc')->defaultFalse()->info('Generate phpDoc blocks even when they\'re obvious')->end()
                 ->booleanNode('checkIsGoodRelations')->defaultFalse()->info('Emit a warning if a property is not derived from GoodRelations')->end()
                 ->scalarNode('header')->defaultFalse()->info('A license or any text to use as header of generated files')->example('// (c) Kévin Dunglas <dunglas@gmail.com>')->end()
                 ->arrayNode('namespaces')
