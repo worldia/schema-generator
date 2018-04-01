@@ -795,6 +795,15 @@ class TypesGenerator
     private function generateClassUses(array $annotationGenerators, array $classes, string $className): array
     {
         $uses = $classes[$className]['uses'];
+        $parent = $classes[$className]['parent'];
+
+        if (isset($classes[$parent])) {
+            $uses[] = sprintf(
+                '%s\\%s',
+                $classes[$parent]['namespace'],
+                $classes[$parent]['name']
+            );
+        }
 
         if (isset($classes[$className]['interfaceNamespace'])
             && $classes[$className]['interfaceNamespace'] !== $classes[$className]['namespace']
