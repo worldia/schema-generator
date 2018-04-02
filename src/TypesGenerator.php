@@ -157,6 +157,7 @@ class TypesGenerator
             $class['resource'] = $type;
             $class['config'] = $typeConfig;
             $class['isEnum'] = $this->isEnum($type) || $typeConfig['enum'];
+            $class['isTranslated'] = false;
 
             foreach ($typeConfig['constants'] as $name => $value) {
                 $class['constants'][$name] = [
@@ -256,8 +257,19 @@ class TypesGenerator
                 $field['isEnum'] = isset($classes[$field['range']]) && $classes[$field['range']]['isEnum'];
                 $field['typeHint'] = $this->fieldToTypeHint($config, $field, $classes) ?? false;
 
+                if ($field['isTranslated']) {
+                    $class['isTranslated'] = true;
+                }
+
                 if ($field['isArray']) {
                     $field['adderRemoverTypeHint'] = $this->fieldToAdderRemoverTypeHint($field, $classes) ?? false;
+                }
+            }
+
+            if ($class['isTranslated']) {
+                if ('knp' === $config['translationMethod']) {
+                    $class['uses'][] = 'Knp\DoctrineBehaviors\Model\Translatable\Translation';
+                    $class['uses'][] = 'Knp\DoctrineBehaviors\Model\Translatable\Translatable';
                 }
             }
         }
@@ -406,6 +418,19 @@ class TypesGenerator
                     'class' => $class,
                 ])
             );
+
+            if ($class['isTranslated']) {
+                $path = sprintf('%s%s.php', $classDir, $className.'Translation');
+                $generatedFiles[] = $path;
+
+                file_put_contents(
+                    $path,
+                    $this->twig->render($config['translationMethod'].'-translation.php.twig', [
+                        'config' => $config,
+                        'class' => $class,
+                    ])
+                );
+            }
 
             if (isset($class['interfaceNamespace'])) {
                 $interfaceDir = $this->namespaceToDir($config, $class['interfaceNamespace']);
@@ -666,6 +691,7 @@ class TypesGenerator
                 'isWritable' => $propertyConfig['writable'] ?? true,
                 'isNullable' => $isNullable,
                 'isUnique' => isset($propertyConfig['unique']) && $propertyConfig['unique'],
+                'isTranslated' => $propertyConfig['translated'],
                 'isCustom' => empty($property),
                 'isEmbedded' => $isEmbedded,
                 'columnPrefix' => $columnPrefix,
@@ -799,7 +825,7 @@ class TypesGenerator
 
         if (isset($classes[$parent])) {
             $uses[] = sprintf(
-                '%s\\%s',
+                '%s\\%sInterface',
                 $classes[$parent]['namespace'],
                 $classes[$parent]['name']
             );

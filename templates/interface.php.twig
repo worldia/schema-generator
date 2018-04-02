@@ -12,6 +12,10 @@ declare(strict_types=1);
 
 namespace {{ class.interfaceNamespace }};
 
+{% for use in class.uses %}
+use {{ use }};
+{% endfor %}
+
 {% if class.interfaceAnnotations|length > 0 %}
 /**
 {% for annotation in class.interfaceAnnotations %}
@@ -19,7 +23,7 @@ namespace {{ class.interfaceNamespace }};
 {% endfor %}
  */
 {% endif %}
-interface {{ class.interfaceName }}
+interface {{ class.interfaceName }}{% if class.parent %} extends {{ class.parent }}Interface{% endif %}
 {
 {% if config.addMethodsInInterfaces %}
 {% if config.accessorMethods %}
