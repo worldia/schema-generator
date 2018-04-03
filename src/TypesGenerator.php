@@ -108,6 +108,7 @@ class TypesGenerator
             'constants' => [],
             'fields' => [],
             'uses' => [],
+            'interfaces' => [],
             'hasConstructor' => false,
             'parentHasConstructor' => false,
             'hasChild' => false,
@@ -167,6 +168,12 @@ class TypesGenerator
                 ];
             }
 
+            foreach ($typeConfig['interfaces'] as $value) {
+                $shortName = explode('\\', $value);
+                $class['uses'][] = $value;
+                $class['interfaces'][] = array_pop($shortName);
+            }
+
             if ($class['isEnum']) {
                 $class['namespace'] = $typeConfig['namespace'] ?? $config['namespaces']['enum'];
                 $class['parent'] = 'Enum';
@@ -217,6 +224,7 @@ class TypesGenerator
                 if ($config['useInterface']) {
                     $class['interfaceNamespace'] = isset($typeConfig['namespaces']['interface']) && $typeConfig['namespaces']['interface'] ? $typeConfig['namespaces']['interface'] : $config['namespaces']['interface'];
                     $class['interfaceName'] = sprintf('%sInterface', $typeName);
+                    $class['interfaces'][] = sprintf('%sInterface', $typeName);
                 }
             }
 
