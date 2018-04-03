@@ -112,7 +112,7 @@ use {{ use }};
     public function set{{ field.name|ucfirst }}({% if field.typeHint %}{% if field.isNullable %}?{% endif %}{{ field.typeHint }} {% endif %}${{ field.name }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
 {% if field.isEnum %}
-        if (!defined(sprintf('{{ field.range }}::%s', ${{ field.name }}))) {
+        if (!{{ field.range }}::isValid(${{ field.name }})) {
             throw new \InvalidArgumentException(sprintf('"%s" is not a valid value for "{{ field.name }}".', ${{ field.name }}));
         }
 
