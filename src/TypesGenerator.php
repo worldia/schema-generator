@@ -835,9 +835,9 @@ class TypesGenerator
 
         if (isset($classes[$parent])) {
             $uses[] = sprintf(
-                '%s\\%sInterface',
-                $classes[$parent]['namespace'],
-                $classes[$parent]['name']
+                '%s\\%s',
+                $classes[$parent]['interfaceNamespace'],
+                $classes[$parent]['interfaceName']
             );
         }
 
