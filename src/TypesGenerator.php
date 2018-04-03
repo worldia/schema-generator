@@ -683,7 +683,7 @@ class TypesGenerator
             }
 
             $class['fields'][$propertyName] = [
-                'name' => $isArray ? Inflector::pluralize($propertyName) : Inflector::singularize($propertyName),
+                'name' => $propertyConfig['forceName'] ? $propertyName : ($isArray ? Inflector::pluralize($propertyName) : Inflector::singularize($propertyName)),
                 'resource' => $property,
                 'range' => $ranges[0],
                 'cardinality' => $cardinality,

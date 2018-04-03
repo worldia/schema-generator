@@ -202,6 +202,7 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                                         ->booleanNode('translated')->defaultFalse()->info('Is the property translated?')->end()
                                         ->booleanNode('embedded')->defaultFalse()->info('Is the property embedded?')->end()
                                         ->booleanNode('columnPrefix')->defaultFalse()->info('The property columnPrefix')->end()
+                                        ->booleanNode('forceName')->defaultFalse()->info('Force property name without inflection')->end()
                                     ->end()
                                 ->end()
                             ->end()

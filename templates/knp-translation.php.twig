@@ -50,7 +50,7 @@ use {{ use }};
      */
     public function add{{ field.name|singularize|ucfirst }}({% if field.typeHint and not field.isEnum %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
-        if (!$this->{{ field.name }}->containsElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
+        if (!$this->{{ field.name }}->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
             $this->{{ field.name }}->add({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
         }
 {% if config.fluentMutatorMethods %}
@@ -67,7 +67,7 @@ use {{ use }};
     public function remove{{ field.name|singularize|ucfirst }}({% if field.typeHint %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
 {% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
-        if ($this->{{ field.name }}->containsElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
+        if ($this->{{ field.name }}->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
             $this->{{ field.name }}->removeElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
         }
 {% else %}
