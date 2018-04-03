@@ -666,6 +666,8 @@ class TypesGenerator
 
             if (isset($propertyConfig['nullable']) && false === $propertyConfig['nullable']) {
                 $isNullable = false;
+            } elseif (isset($propertyConfig['nullable']) && true === $propertyConfig['nullable']) {
+                $isNullable = true;
             } else {
                 $isNullable = !in_array($cardinality, [
                     CardinalitiesExtractor::CARDINALITY_1_1,
