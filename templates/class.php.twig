@@ -24,8 +24,10 @@ use {{ use }};
 {% if class.abstract %}abstract {% endif %}class {{ class.name }}{% if class.parent %} extends {{ class.parent }}{% endif %}{% if class.interfaces|length %} implements {% for interface in class.interfaces %}{{ interface }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
 
 {
-{% if class.isTranslated %}
-    use Translatable;
+{% if class.traits|length %}
+{% for trait in class.traits %}
+    use {{ trait }};
+{% endfor %}
 
 {% endif %}
 {% for constant in class.constants %}
@@ -54,7 +56,6 @@ use {{ use }};
 {% endif %}
 {% for field in class.fields %}
 {% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
-
         $this->{{ field.name }} = new ArrayCollection();
 {% endif %}
 {% endfor %}
@@ -72,9 +73,13 @@ use {{ use }};
      */
     public function add{{ field.name|singularize|ucfirst }}({% if field.typeHint and not field.isEnum %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
+{% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
         if (!$this->{{ field.name }}->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
             $this->{{ field.name }}->add({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
         }
+{% else %}
+        $this->{{ field.name }}[] = ${{ field.name|singularize }};
+{% endif %}
 {% if config.fluentMutatorMethods %}
 
         return $this;
@@ -118,7 +123,7 @@ use {{ use }};
 
 {% endif %}
 {% if field.isTranslated and config.translationMethod == 'knp' %}
-        $this->proxyCurrentLocaleTranslation(__METHOD__, func_get_args());
+        $this->proxyCurrentLocaleTranslation(__FUNCTION__, func_get_args());
 {% else %}
         $this->{{ field.name }} = ${{ field.name }};
 {% endif %}
@@ -136,10 +141,10 @@ use {{ use }};
      * {{ annotation }}
 {% endfor %}
      */
-    public function get{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %}
+    public function {% if field.name|slice(-4) == 'bled' %}is{% else %}get{% endif %}{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %}
     {
 {% if field.isTranslated and config.translationMethod == 'knp' %}
-        return $this->proxyCurrentLocaleTranslation(__METHOD__, func_get_args());
+        return $this->proxyCurrentLocaleTranslation(__FUNCTION__, func_get_args());
 {% else %}
         return $this->{{ field.name }};
 {% endif %}

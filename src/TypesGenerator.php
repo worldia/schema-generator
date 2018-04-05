@@ -109,10 +109,12 @@ class TypesGenerator
             'fields' => [],
             'uses' => [],
             'interfaces' => [],
+            'traits' => [],
             'hasConstructor' => false,
             'parentHasConstructor' => false,
             'hasChild' => false,
             'abstract' => false,
+            'isMapped' => true,
         ];
 
         $typesToGenerate = [];
@@ -159,6 +161,9 @@ class TypesGenerator
             $class['config'] = $typeConfig;
             $class['isEnum'] = $this->isEnum($type) || $typeConfig['enum'];
             $class['isTranslated'] = false;
+            $class['traits'] = $typeConfig['traits'];
+            $class['interfaces'] = $typeConfig['interfaces'];
+            $class['isMapped'] = $typeConfig['mapped'];
 
             foreach ($typeConfig['constants'] as $name => $value) {
                 $class['constants'][$name] = [
@@ -166,12 +171,6 @@ class TypesGenerator
                     'value' => $value,
                     'resource' => null,
                 ];
-            }
-
-            foreach ($typeConfig['interfaces'] as $value) {
-                $shortName = explode('\\', $value);
-                $class['uses'][] = $value;
-                $class['interfaces'][] = array_pop($shortName);
             }
 
             if ($class['isEnum']) {
@@ -224,7 +223,7 @@ class TypesGenerator
                 if ($config['useInterface']) {
                     $class['interfaceNamespace'] = isset($typeConfig['namespaces']['interface']) && $typeConfig['namespaces']['interface'] ? $typeConfig['namespaces']['interface'] : $config['namespaces']['interface'];
                     $class['interfaceName'] = sprintf('%sInterface', $typeName);
-                    $class['interfaces'][] = sprintf('%sInterface', $typeName);
+                    $class['interfaces'][] = sprintf('%s\%sInterface', $class['interfaceNamespace'], $typeName);
                 }
             }
 
@@ -277,8 +276,20 @@ class TypesGenerator
             if ($class['isTranslated']) {
                 if ('knp' === $config['translationMethod']) {
                     $class['uses'][] = 'Knp\DoctrineBehaviors\Model\Translatable\Translation';
-                    $class['uses'][] = 'Knp\DoctrineBehaviors\Model\Translatable\Translatable';
+                    $class['traits'][] = 'Knp\DoctrineBehaviors\Model\Translatable\Translatable';
                 }
+            }
+
+            foreach ($class['interfaces'] as $index => $value) {
+                $shortName = explode('\\', $value);
+                $class['uses'][] = $value;
+                $class['interfaces'][$index] = array_pop($shortName);
+            }
+
+            foreach ($class['traits'] as $index => $value) {
+                $shortName = explode('\\', $value);
+                $class['uses'][] = $value;
+                $class['traits'][$index] = array_pop($shortName);
             }
         }
 
@@ -565,7 +576,7 @@ class TypesGenerator
      */
     private function isDatatype(string $type): bool
     {
-        return in_array($type, ['Boolean', 'DataType', 'Date', 'DateTime', 'Float', 'Integer', 'Number', 'Text', 'Time', 'URL'], true);
+        return in_array($type, ['Array', 'Boolean', 'DataType', 'Date', 'DateTime', 'Float', 'Integer', 'Number', 'Text', 'Time', 'URL'], true);
     }
 
     private function fieldToTypeHint(array $config, array $field, array $classes): ?string
@@ -584,6 +595,8 @@ class TypesGenerator
         }
 
         switch ($field['range']) {
+            case 'Array':
+                return 'array';
             case 'Boolean':
                 return 'bool';
             case 'Float':
@@ -841,16 +854,6 @@ class TypesGenerator
             );
         }
 
-        if (isset($classes[$className]['interfaceNamespace'])
-            && $classes[$className]['interfaceNamespace'] !== $classes[$className]['namespace']
-        ) {
-            $uses[] = sprintf(
-                '%s\\%s',
-                $classes[$className]['interfaceNamespace'],
-                $classes[$className]['interfaceName']
-            );
-        }
-
         foreach ($classes[$className]['fields'] as $field) {
             if (isset($classes[$field['range']]['interfaceName'])) {
                 $use = sprintf(
@@ -862,6 +865,14 @@ class TypesGenerator
                 if (!in_array($use, $uses, true)) {
                     $uses[] = $use;
                 }
+            }
+
+            if ($field['isEnum']) {
+                $uses[] = sprintf(
+                    '%s\\%s',
+                    $classes[$field['range']]['namespace'],
+                    $classes[$field['range']]['name']
+                );
             }
         }
 

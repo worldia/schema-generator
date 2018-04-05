@@ -30,7 +30,7 @@ final class DoctrineOrmAnnotationGenerator extends AbstractAnnotationGenerator
     {
         $class = $this->classes[$className];
 
-        if ($class['isEnum']) {
+        if ($class['isEnum'] || !$class['isMapped']) {
             return [];
         }
 
@@ -56,6 +56,10 @@ final class DoctrineOrmAnnotationGenerator extends AbstractAnnotationGenerator
      */
     public function generateFieldAnnotations(string $className, string $fieldName): array
     {
+        if (!$this->classes[$className]['isMapped']) {
+            return [];
+        }
+
         $field = $this->classes[$className]['fields'][$fieldName];
         if ($field['isId']) {
             return $this->generateIdAnnotations();
@@ -72,6 +76,9 @@ final class DoctrineOrmAnnotationGenerator extends AbstractAnnotationGenerator
             $type = $field['isArray'] ? 'simple_array' : 'string';
         } else {
             switch ($field['range']) {
+                case 'Array':
+                    $type = 'json_array';
+                    break;
                 case 'Boolean':
                     $type = 'boolean';
                     break;
@@ -195,7 +202,7 @@ final class DoctrineOrmAnnotationGenerator extends AbstractAnnotationGenerator
         $subClassOf = $resource->get('rdfs:subClassOf');
         $typeIsEnum = $subClassOf && TypesGenerator::SCHEMA_ORG_ENUMERATION === $subClassOf->getUri();
 
-        return $typeIsEnum ? [] : ['Doctrine\ORM\Mapping as ORM'];
+        return ($typeIsEnum || !$this->classes[$className]['isMapped']) ? [] : ['Doctrine\ORM\Mapping as ORM'];
     }
 
     private function generateIdAnnotations(): array

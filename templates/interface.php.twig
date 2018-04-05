@@ -59,7 +59,7 @@ interface {{ class.interfaceName }}{% if class.parent %} extends {{ class.parent
      * {{ annotation }}
 {% endfor %}
      */
-    public function get{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %};
+    public function {% if field.name|slice(-4) == 'bled' %}is{% else %}get{% endif %}{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %};
 
 {% endif %}
 {% endfor %}
