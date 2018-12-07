@@ -165,6 +165,7 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                                 ->end()
                             ->end()
                             ->scalarNode('parent')->defaultFalse()->info('The parent class, set to false for a top level class')->end()
+                            ->scalarNode('generateTrait')->defaultFalse()->info('Whether to generate a trait')->end()
                             ->scalarNode('guessFrom')->defaultValue('Thing')->info('If declaring a custom class, this will be the class from which properties type will be guessed')->end()
                             ->booleanNode('allProperties')->defaultFalse()->info('Import all existing properties')->end()
                             ->booleanNode('mapped')->defaultTrue()->info('Whether the entity should be mapped by Doctrine')->end()

@@ -10,35 +10,14 @@
 {% endif %}
 declare(strict_types=1);
 
-namespace {{ class.namespace }};
+namespace {{ interface.namespace }};
 
 {% for use in class.uses %}
 use {{ use }};
 {% endfor %}
 
-/**
-{% for annotation in class.annotations %}
- * {{ annotation }}
-{% endfor %}
- */
-{% if class.abstract %}abstract {% endif %}class {{ class.name }}{% if class.parent %} extends {{ class.parent }}{% endif %} implements {{ class.name }}Interface
-
+trait {{ class.name }}Trait
 {
-{% if class.traits|length %}
-{% for trait in class.traits %}
-    use {{ trait }};
-{% endfor %}
-
-{% endif %}
-{% for constant in class.constants %}
-    /**
-{% for annotation in constant.annotations %}
-     * {{ annotation }}
-{% endfor %}
-     */
-    const {{ constant.name }} = '{{ constant.value }}';
-
-{% endfor %}
 {% for field in class.fields if not field.isTranslated %}
     /**
 {% for annotation in field.annotations %}
@@ -48,7 +27,7 @@ use {{ use }};
     {{ config.fieldVisibility }} ${{ field.name }}{% if field.isArray and (field.isEnum or not field.typeHint or not config.doctrine.useCollection) %} = []{% endif %};
 
 {% endfor %}
-{% if config.doctrine.useCollection and class.hasConstructor %}
+{#% if config.doctrine.useCollection and class.hasConstructor %}
     public function __construct()
     {
 {% if class.parentHasConstructor %}
@@ -61,7 +40,7 @@ use {{ use }};
 {% endfor %}
     }
 
-{% endif %}
+{% endif %#}
 {% if config.accessorMethods %}
 {% for field in class.fields %}
 {% if field.isWritable %}
@@ -74,8 +53,8 @@ use {{ use }};
     public function add{{ field.name|singularize|ucfirst }}({% if field.typeHint and not field.isEnum %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
 {% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
-        if (!$this->{{ field.name }}->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
-            $this->{{ field.name }}->add({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
+        if (!$this->get{{ field.name|ucfirst }}()->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
+            $this->get{{ field.name|ucfirst }}()->add({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
         }
 {% else %}
         $this->{{ field.name }}[] = ${{ field.name|singularize }};
@@ -94,8 +73,8 @@ use {{ use }};
     public function remove{{ field.name|singularize|ucfirst }}({% if field.typeHint %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
 {% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
-        if ($this->{{ field.name }}->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
-            $this->{{ field.name }}->removeElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
+        if ($this->get{{ field.name|ucfirst }}()->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
+            $this->get{{ field.name|ucfirst }}()->removeElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
         }
 {% else %}
         $key = array_search({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }}, $this->{{ field.name }}, true);
@@ -146,6 +125,12 @@ use {{ use }};
 {% if field.isTranslated and config.translationMethod == 'knp' %}
         return $this->proxyCurrentLocaleTranslation(__FUNCTION__, func_get_args());
 {% else %}
+{% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
+        if (null === $this->{{ field.name }}) {
+            $this->{{ field.name }} = new ArrayCollection();
+        }
+
+{% endif %}
         return $this->{{ field.name }};
 {% endif %}
     }

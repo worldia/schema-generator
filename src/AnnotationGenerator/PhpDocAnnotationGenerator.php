@@ -97,7 +97,13 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
             return [];
         }
 
-        return [sprintf('@return %s', $this->toPhpDocType($this->classes[$className]['fields'][$fieldName]))];
+        $annotation = $this->toPhpDocType($this->classes[$className]['fields'][$fieldName]);
+
+        if (!$this->classes[$className]['fields'][$fieldName]['isArray'] && !$this->classes[$className]['fields'][$fieldName]['isNullable']) {
+            $annotation .= '|null';
+        }
+
+        return [sprintf('@return %s', $annotation)];
     }
 
     /**
@@ -177,7 +183,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
         $doc = explode("\n", $this->htmlToMarkdown->convert($doc));
 
         if ($indent) {
-            $count = count($doc);
+            $count = \count($doc);
             for ($i = 1; $i < $count; ++$i) {
                 $doc[$i] = self::INDENT.$doc[$i];
             }

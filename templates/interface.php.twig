@@ -23,7 +23,16 @@ use {{ use }};
 {% endfor %}
  */
 {% endif %}
-interface {{ class.interfaceName }}{% if class.parent %} extends {{ class.parent }}Interface{% endif %}
+{% set interfaces = [] %}
+{% for interface in class.interfaces %}
+{% if interface is not same as(class.interfaceName) %}
+{% set interfaces = interfaces|merge([interface]) %}
+{% endif %}
+{% endfor %}
+{% if class.parent %}
+{% set interfaces = interfaces|merge([class.parent ~'Interface']) %}
+{% endif %}
+interface {{ class.interfaceName }}{% if interfaces|length %} extends {% for interface in interfaces %}{{ interface }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}
 {
 {% if config.addMethodsInInterfaces %}
 {% if config.accessorMethods %}
