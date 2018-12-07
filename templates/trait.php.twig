@@ -10,7 +10,7 @@
 {% endif %}
 declare(strict_types=1);
 
-namespace {{ interface.namespace }};
+namespace {{ class.interfaceNamespace }};
 
 {% for use in class.uses %}
 use {{ use }};
@@ -137,5 +137,8 @@ trait {{ class.name }}Trait
 
 {% endif %}
 {% endfor %}
+{% endif %}
+{% if customCode is defined %}
+    {{ customCode|raw }}
 {% endif %}
 }

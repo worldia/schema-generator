@@ -68,10 +68,13 @@ interface {{ class.interfaceName }}{% if interfaces|length %} extends {% for int
      * {{ annotation }}
 {% endfor %}
      */
-    public function {% if field.name|slice(-4) == 'bled' %}is{% else %}get{% endif %}{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %};
+    public function {% if field.name|slice(-4) == 'bled' %}is{% else %}get{% endif %}{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %};
 
 {% endif %}
 {% endfor %}
 {% endif %}
+{% endif %}
+{% if customCode is defined %}
+    {{ customCode|raw }}
 {% endif %}
 }

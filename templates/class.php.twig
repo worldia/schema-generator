@@ -21,7 +21,7 @@ use {{ use }};
  * {{ annotation }}
 {% endfor %}
  */
-{% if class.abstract %}abstract {% endif %}class {{ class.name }}{% if class.parent %} extends {{ class.parent }}{% endif %} implements {{ class.name }}Interface
+{% if class.abstract %}abstract {% endif %}class {{ class.name }}{% if class.parent %} extends {{ class.parent }}{% endif %}{% if class.parent is not same as('Enum') %} implements {{ class.name }}Interface{% endif %}
 
 {
 {% if class.traits|length %}
@@ -152,5 +152,8 @@ use {{ use }};
 
 {% endif %}
 {% endfor %}
+{% endif %}
+{% if customCode is defined %}
+    {{ customCode|raw }}
 {% endif %}
 }

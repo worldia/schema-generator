@@ -118,6 +118,11 @@ class TypesGenerator
             'generateTrait' => false,
         ];
 
+        if ($config['doctrine']['useCollection']) {
+            $baseClass['uses'][] = ArrayCollection::class;
+            $baseClass['uses'][] = Collection::class;
+        }
+
         $typesToGenerate = [];
 
         if (!$config['types']) {
@@ -432,11 +437,18 @@ class TypesGenerator
             $path = sprintf('%s%s.php', $classDir, $className);
             $generatedFiles[] = $path;
 
+            $customCode = null;
+            $subdirectory = str_replace($config['output'], '', $classDir);
+            if (file_exists($config['output'].'/../config'.$subdirectory.$className.'.php')) {
+                $customCode = file_get_contents($config['output'].'/../config'.$subdirectory.$className.'.php');
+            }
+
             file_put_contents(
                 $path,
                 $this->twig->render('class.php.twig', [
                     'config' => $config,
                     'class' => $class,
+                    'customCode' => $customCode,
                 ])
             );
 
@@ -455,16 +467,22 @@ class TypesGenerator
 
             if ($class['generateTrait']) {
                 $interfaceDir = $this->namespaceToDir($config, $class['interfaceNamespace']);
+
+                $customCode = null;
+                $subdirectory = str_replace($config['output'], '', $interfaceDir);
+                if (file_exists($config['output'].'/../config'.$subdirectory.$className.'Trait.php')) {
+                    $customCode = file_get_contents($config['output'].'/../config'.$subdirectory.$className.'Trait.php');
+                }
+
                 $path = sprintf('%s%s.php', $interfaceDir, $className.'Trait');
                 $generatedFiles[] = $path;
-
-                var_dump($path);
 
                 file_put_contents(
                     $path,
                     $this->twig->render('trait.php.twig', [
                         'config' => $config,
                         'class' => $class,
+                        'customCode' => $customCode,
                     ])
                 );
             }
@@ -476,13 +494,21 @@ class TypesGenerator
                     mkdir($interfaceDir, 0777, true);
                 }
 
+                $customCode = null;
+                $subdirectory = str_replace($config['output'], '', $interfaceDir);
+                if (file_exists($config['output'].'/../config'.$subdirectory.$class['interfaceName'].'.php')) {
+                    $customCode = file_get_contents($config['output'].'/../config'.$subdirectory.$class['interfaceName'].'.php');
+                }
+
                 $path = sprintf('%s%s.php', $interfaceDir, $class['interfaceName']);
                 $generatedFiles[] = $path;
+
                 file_put_contents(
                     $path,
                     $this->twig->render('interface.php.twig', [
                         'config' => $config,
                         'class' => $class,
+                        'customCode' => $customCode,
                     ])
                 );
 
@@ -741,11 +767,6 @@ class TypesGenerator
 
             if ($isArray) {
                 $class['hasConstructor'] = true;
-
-                if ($config['doctrine']['useCollection'] && !\in_array(ArrayCollection::class, $class['uses'], true)) {
-                    $class['uses'][] = ArrayCollection::class;
-                    $class['uses'][] = Collection::class;
-                }
             }
         }
 
