@@ -653,7 +653,7 @@ class TypesGenerator
             case 'Date':
             case 'DateTime':
             case 'Time':
-                return '\\'.\DateTimeInterface::class;
+                return '\\'.\DateTime::class;
             case 'DataType':
             case 'Number':
                 return null;

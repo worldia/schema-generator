@@ -154,7 +154,7 @@ abstract class AbstractAnnotationGenerator implements AnnotationGeneratorInterfa
             case 'Date':
             case 'DateTime':
             case 'Time':
-                $data = '\\'.\DateTimeInterface::class;
+                $data = '\\'.\DateTime::class;
                 break;
             case 'Number':
             case 'Float':
