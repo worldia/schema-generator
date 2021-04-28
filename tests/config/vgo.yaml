@@ -1,4 +1,7 @@
-rdfa: [tests/data/vgo.rdf, data/schema.rdfa]
+vocabularies:
+    - tests/data/vgo.rdf
+    - uri: tests/data/schema.rdfa
+      format: rdfa
 
 annotationGenerators:
   - ApiPlatform\SchemaGenerator\AnnotationGenerator\PhpDocAnnotationGenerator
@@ -6,7 +9,7 @@ annotationGenerators:
   - ApiPlatform\SchemaGenerator\AnnotationGenerator\ConstraintAnnotationGenerator
 
 namespaces:
-  entity: 'AppBundle\Entity'
+  entity: 'App\Entity'
 
 types:
   Session:

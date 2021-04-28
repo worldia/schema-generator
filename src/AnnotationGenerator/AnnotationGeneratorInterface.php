@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace ApiPlatform\SchemaGenerator\AnnotationGenerator;
 
+use ApiPlatform\SchemaGenerator\PhpTypeConverterInterface;
+use Doctrine\Inflector\Inflector;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -22,10 +24,7 @@ use Psr\Log\LoggerInterface;
  */
 interface AnnotationGeneratorInterface
 {
-    /**
-     * @param \EasyRdf_Graph[] $graphs
-     */
-    public function __construct(LoggerInterface $logger, array $graphs, array $cardinalities, array $config, array $classes);
+    public function __construct(PhpTypeConverterInterface $phpTypeConverter, LoggerInterface $logger, Inflector $inflector, array $graphs, array $cardinalities, array $config, array $classes);
 
     /**
      * Generates class's annotations.

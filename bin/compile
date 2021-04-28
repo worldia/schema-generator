@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -eox pipefail
+
+php "$BOX_BIN" compile;
+
+php schema.phar generate tmp/ tests/e2e/schema.yml;
+
+diff tests/e2e/src/App/Entity/Person.php tmp/App/Entity/Person.php;
+diff tests/e2e/src/App/Entity/PostalAddress.php tmp/App/Entity/PostalAddress.php;
+diff tests/e2e/src/App/Entity/Thing.php tmp/App/Entity/Thing.php;

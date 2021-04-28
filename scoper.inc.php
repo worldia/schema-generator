@@ -11,39 +11,10 @@
 
 declare(strict_types=1);
 
-use Isolated\Symfony\Component\Finder\Finder;
-
 return [
-    'finders' => [
-        Finder::create()->files()
-            ->in('src')
-            ->in('data')
-            ->in('templates'),
-        Finder::create()
-            ->files()
-            ->ignoreVCS(true)
-            ->notName('/LICENSE|.*\\.md|.*\\.dist|Makefile|composer\\.json|composer\\.lock/')
-            ->exclude([
-                'doc',
-                'test',
-                'test_old',
-                'tests',
-                'Test',
-                'Tests',
-            ])
-            ->in('vendor'),
-        Finder::create()->append([
-            'bin/schema',
-            'composer.json',
-        ]),
-        Finder::create()->append([
-            'vendor/friendsofphp/php-cs-fixer/tests/Test',
-            'vendor/friendsofphp/php-cs-fixer/tests/TestCase.php',
-        ]),
-    ],
     'whitelist' => [
-        'ApiPlatform\Core\Annotation\ApiProperty',
-        'ApiPlatform\Core\Annotation\ApiResource',
+        \ApiPlatform\Core\Annotation\ApiProperty::class,
+        \ApiPlatform\Core\Annotation\ApiResource::class,
     ],
     'patchers' => [
         function (string $filePath, string $prefix, string $content): string {
@@ -51,7 +22,7 @@ return [
             // PHP-CS-Fixer patch
             //
 
-            if ($filePath === __DIR__.'/vendor/friendsofphp/php-cs-fixer/src/FixerFactory.php') {
+            if ('vendor/friendsofphp/php-cs-fixer/src/FixerFactory.php' === $filePath) {
                 return preg_replace(
                     '/\$fixerClass = \'PhpCsFixer(.*?\;)/',
                     sprintf('$fixerClass = \'%s\\PhpCsFixer$1', $prefix),
@@ -60,6 +31,41 @@ return [
             }
 
             return $content;
+        },
+
+        // TODO: Temporary patch until the issue is fixed upstream
+        // @link https://github.com/humbug/php-scoper/issues/285
+        function (string $filePath, string $prefix, string $content): string {
+            if (false === strpos($content, '@')) {
+                return $content;
+            }
+
+            $regex = sprintf(
+                '/\'%s\\\\\\\\(@.*?)\'/',
+                $prefix
+            );
+
+            return preg_replace(
+                $regex,
+                '\'$1\'',
+                $content
+            );
+        },
+        function (string $filePath, string $prefix, string $content): string {
+            if (0 !== strpos($filePath, 'src/AnnotationGenerator/')) {
+                return $content;
+            }
+
+            $regex = sprintf(
+                '/\\\\%s(.*?::class)/',
+                $prefix
+            );
+
+            return preg_replace(
+                $regex,
+                '$1',
+                $content
+            );
         },
     ],
 ];
