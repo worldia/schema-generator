@@ -38,29 +38,29 @@ final class ConstraintAnnotationGenerator extends AbstractAnnotationGenerator
         }
 
         $asserts = [];
-        if (!$field['isArray'] && $field['range']) {
-            switch ($field['range']->getUri()) {
-                case 'http://schema.org/URL':
+        if (!$field['isArray']) {
+            switch ($field['range']) {
+                case 'URL':
                     $asserts[] = '@Assert\Url';
                     break;
-                case 'http://schema.org/Date':
+                case 'Date':
                     $asserts[] = '@Assert\Date';
                     break;
-                case 'http://schema.org/DateTime':
+                case 'DateTime':
                     $asserts[] = '@Assert\DateTime';
                     break;
-                case 'http://schema.org/Time':
+                case 'Time':
                     $asserts[] = '@Assert\Time';
                     break;
             }
 
-            if (isset($field['resource']) && 'http://schema.org/email' === $field['resource']->getUri()) {
+            if (isset($field['resource']) && 'email' === $field['resource']->localName()) {
                 $asserts[] = '@Assert\Email';
             }
 
             if (!$asserts && $this->config['validator']['assertType']) {
-                $phpType = $this->phpTypeConverter->getPhpType($field, $this->config, []);
-                if (\in_array($phpType, ['bool', 'float', 'int', 'string'], true)) {
+                $phpType = $this->toPhpType($field);
+                if (in_array($phpType, ['boolean', 'float', 'integer', 'string'], true)) {
                     $asserts[] = sprintf('@Assert\Type(type="%s")', $phpType);
                 }
             }
@@ -70,8 +70,8 @@ final class ConstraintAnnotationGenerator extends AbstractAnnotationGenerator
             $asserts[] = '@Assert\NotNull';
         }
 
-        if ($field['isEnum'] && $field['range']) {
-            $assert = sprintf('@Assert\Choice(callback={"%s", "toArray"}', $field['rangeName']);
+        if ($field['isEnum']) {
+            $assert = sprintf('@Assert\Choice(callback={"%s", "toArray"}', $field['range']);
 
             if ($field['isArray']) {
                 $assert .= ', multiple=true';
@@ -99,13 +99,12 @@ final class ConstraintAnnotationGenerator extends AbstractAnnotationGenerator
         $uses[] = UniqueEntity::class;
 
         foreach ($this->classes[$className]['fields'] as $field) {
-            if ($field['isEnum'] && $field['range']) {
-                $rangeName = $field['rangeName'];
-                $enumClass = $this->classes[$rangeName];
+            if ($field['isEnum']) {
+                $enumClass = $this->classes[$field['range']];
                 $enumNamespace = isset($enumClass['namespaces']['class']) && $enumClass['namespaces']['class'] ? $enumClass['namespaces']['class'] : $this->config['namespaces']['enum'];
-                $use = sprintf('%s\%s', $enumNamespace, $rangeName);
+                $use = sprintf('%s\%s', $enumNamespace, $field['range']);
 
-                if (!\in_array($use, $uses, true)) {
+                if (!in_array($use, $uses, true)) {
                     $uses[] = $use;
                 }
             }
@@ -138,7 +137,7 @@ final class ConstraintAnnotationGenerator extends AbstractAnnotationGenerator
             return [];
         }
 
-        if (1 === \count($uniqueFields)) {
+        if (1 === count($uniqueFields)) {
             $annotation[] = sprintf('@UniqueEntity("%s")', $uniqueFields[0]);
         } else {
             $annotation[] = sprintf('@UniqueEntity(fields={"%s"})', implode('","', $uniqueFields));

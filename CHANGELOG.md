@@ -1,38 +1,5 @@
 # Changelog
 
-## 3.0.0
-
-* Support for [the Web Ontology Language (OWL)](https://en.wikipedia.org/wiki/Web_Ontology_Language) (including for [the ActivityStream vocabulary](https://www.w3.org/TR/activitystreams-core/))
-* Support for [XML Schema](https://en.wikipedia.org/wiki/XML_Schema_(W3C)) types
-* Compatibility with the latest version of Schema.org
-* Improved PHP type hints generation (including support for typed properties)
-* Improved PHPDoc support
-* Upgrade to EasyRDF 1 and Doctrine Inflector 2
-* More flexible configuration
-* The `generate-types` command has been renamed `generate`
-
-## 2.2.2
-
-* Update to Symfony 5
-* Fix an issue preventing to install the tool when using Symfony Flex
-* Fix a singularization issue with some words such as `sameAs`
-
-## 2.2.1
-
-* Allow `symfony/config` 5.0
-
-## 2.2.0
-
-* Symfony 5 compatibility
-* Add support for custom Twig templates
-* Add support for operations in API Platform annotations
-* Add support for custom `columnPrefix`
-* Use superseding props over which they superseded
-* Fix implicit and explicit property inheritance
-* Use nullable property for custom fields
-* Add `inversedBy` and `mappedBy` Doctrine attributes
-* Fix annotation generation
-
 ## 2.1.0
 
 * Allow to use a PSR-4 namespace's prefix
@@ -46,7 +13,7 @@
 
 ## 2.0.1
 
-* The generator now relies on embedded schema file to prevent issues with online XML files and allow offline usage
+* The generator now relies on embeded schema file to prevent issues with online XML files and allow offline usage
 * An issue regarding the Inflector namespace has been fixed
 
 ## 2.0.0

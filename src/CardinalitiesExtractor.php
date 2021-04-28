@@ -13,11 +13,8 @@ declare(strict_types=1);
 
 namespace ApiPlatform\SchemaGenerator;
 
-use EasyRdf\Graph;
-use EasyRdf\Resource;
-
 /**
- * Extracts cardinalities from the OWL definition, from GoodRelations or from Schema.org's comments.
+ * Cardinality extractor.
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  */
@@ -33,13 +30,14 @@ class CardinalitiesExtractor
     public const CARDINALITY_UNKNOWN = 'unknown';
 
     /**
-     * @var Graph[]
+     * @var \EasyRdf_Graph[]
      */
-    private array $graphs;
-    private GoodRelationsBridge $goodRelationsBridge;
+    private $graphs;
+
+    private $goodRelationsBridge;
 
     /**
-     * @param Graph[] $graphs
+     * @param \EasyRdf_Graph[] $graphs
      */
     public function __construct(array $graphs, GoodRelationsBridge $goodRelationsBridge)
     {
@@ -55,14 +53,8 @@ class CardinalitiesExtractor
         $properties = [];
 
         foreach ($this->graphs as $graph) {
-            foreach (TypesGenerator::$propertyTypes as $propertyType) {
-                foreach ($graph->allOfType($propertyType) as $property) {
-                    if ($property->isBNode()) {
-                        continue;
-                    }
-
-                    $properties[$property->getUri()] = $this->extractForProperty($property);
-                }
+            foreach ($graph->allOfType('rdf:Property') as $property) {
+                $properties[$property->localName()] = $this->extractForProperty($property);
             }
         }
 
@@ -74,45 +66,19 @@ class CardinalitiesExtractor
      *
      * Based on [Geraint Luff work](https://github.com/geraintluff/schema-org-gen).
      *
+     * @param \EasyRdf_Resource $property
+     *
      * @return string The cardinality
      */
-    private function extractForProperty(Resource $property): string
+    private function extractForProperty(\EasyRdf_Resource $property): string
     {
-        $minCardinality = $property->get('owl:minCardinality');
-        $maxCardinality = $property->get('owl:maxCardinality');
-        if (null !== $minCardinality && null !== $maxCardinality && $minCardinality >= 1 && $maxCardinality <= 1) {
-            return self::CARDINALITY_1_1;
-        }
-
-        if ((null !== $minCardinality) && $minCardinality >= 1) {
-            return self::CARDINALITY_1_N;
-        }
-
-        if ((null !== $maxCardinality) && $maxCardinality <= 1) {
-            return self::CARDINALITY_0_1;
-        }
-
-        if ($property->isA('owl:FunctionalProperty')) {
-            return self::CARDINALITY_0_1;
-        }
-        if ($property->isA('owl:InverseFunctionalProperty')) {
-            return self::CARDINALITY_0_N;
-        }
-
-        if (0 !== strpos($property->getUri(), 'http://schema.org')) {
-            return self::CARDINALITY_UNKNOWN;
-        }
-
         $localName = $property->localName();
         $fromGoodRelations = $this->goodRelationsBridge->extractCardinality($localName);
         if (false !== $fromGoodRelations) {
             return $fromGoodRelations;
         }
 
-        if (!$rdfsComment = $property->get('rdfs:comment')) {
-            return self::CARDINALITY_UNKNOWN;
-        }
-        $comment = $rdfsComment->getValue();
+        $comment = $property->get('rdfs:comment')->getValue();
 
         if (
             // http://schema.org/acceptedOffer, http://schema.org/acceptedPaymentMethod, http://schema.org/exerciseType

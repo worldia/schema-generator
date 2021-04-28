@@ -13,8 +13,7 @@ declare(strict_types=1);
 
 namespace ApiPlatform\SchemaGenerator\AnnotationGenerator;
 
-use ApiPlatform\SchemaGenerator\PhpTypeConverterInterface;
-use Doctrine\Inflector\Inflector;
+use Doctrine\Common\Inflector\Inflector;
 use League\HTMLToMarkdown\HtmlConverter;
 use Psr\Log\LoggerInterface;
 
@@ -27,14 +26,17 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
 {
     private const INDENT = '   ';
 
-    private HtmlConverter $htmlToMarkdown;
+    /**
+     * @var HtmlConverter
+     */
+    private $htmlToMarkdown;
 
     /**
      * {@inheritdoc}
      */
-    public function __construct(PhpTypeConverterInterface $phpTypeConverter, LoggerInterface $logger, Inflector $inflector, array $graphs, array $cardinalities, array $config, array $classes)
+    public function __construct(LoggerInterface $logger, array $graphs, array $cardinalities, array $config, array $classes)
     {
-        parent::__construct($phpTypeConverter, $logger, $inflector, $graphs, $cardinalities, $config, $classes);
+        parent::__construct($logger, $graphs, $cardinalities, $config, $classes);
 
         $this->htmlToMarkdown = new HtmlConverter();
     }
@@ -65,7 +67,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
         }
 
         $annotations = $this->formatDoc((string) $resource->get('rdfs:comment'), true);
-        $annotations[0] = sprintf('@var string %s', $this->escapePhpDoc($annotations[0]));
+        $annotations[0] = sprintf('@var string %s', $annotations[0]);
 
         return $annotations;
     }
@@ -78,21 +80,9 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
         $field = $this->classes[$className]['fields'][$fieldName];
         $comment = $field['resource'] ? $field['resource']->get('rdfs:comment') : '';
 
-        $description = $this->formatDoc((string) $comment, true);
+        $annotations = $this->formatDoc((string) $comment, true);
 
-        $annotations = [];
-        $tags = false;
-        if ($this->isDocUseful($className, $fieldName)) {
-            $annotations[] = sprintf('@var %s %s', $this->toPhpDocType($field), $this->escapePhpDoc($description[0]));
-        } else {
-            $annotations = $description;
-            $annotations[] = '';
-        }
-
-        if (isset($this->classes[$className]['fields'][$fieldName]['resource'])) {
-            $annotations[] = sprintf('@see %s', $this->classes[$className]['fields'][$fieldName]['resource']->getUri());
-        }
-
+        $annotations[0] = sprintf('@var %s %s', $this->toPhpDocType($field), $annotations[0]);
         $annotations[] = '';
 
         return $annotations;
@@ -139,7 +129,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
             return [];
         }
 
-        return [sprintf('@param %s $%s', $this->toPhpDocType($this->classes[$className]['fields'][$fieldName], true), $this->inflector->singularize($fieldName))];
+        return [sprintf('@param %s $%s', $this->toPhpType($this->classes[$className]['fields'][$fieldName], true), Inflector::singularize($fieldName))];
     }
 
     /**
@@ -151,7 +141,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
             return [];
         }
 
-        return [sprintf('@param %s $%s', $this->toPhpDocType($this->classes[$className]['fields'][$fieldName], true), $this->inflector->singularize($fieldName))];
+        return [sprintf('@param  %s $%s', $this->toPhpType($this->classes[$className]['fields'][$fieldName], true), Inflector::singularize($fieldName))];
     }
 
     private function isDocUseful(string $className, string $fieldName, $adderOrRemover = false): bool
@@ -175,7 +165,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
         } else {
             $annotations = $this->formatDoc((string) $resource->get('rdfs:comment'));
             $annotations[] = '';
-            $annotations[] = sprintf('@see %s', $resource->getUri());
+            $annotations[] = sprintf('@see %s %s', $resource->getUri(), 'Documentation on Schema.org');
         }
 
         if ($this->config['author']) {
@@ -190,7 +180,7 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
      */
     private function formatDoc(string $doc, bool $indent = false): array
     {
-        $doc = explode("\n", $this->escapePhpDoc($this->htmlToMarkdown->convert($doc)));
+        $doc = explode("\n", $this->htmlToMarkdown->convert($doc));
 
         if ($indent) {
             $count = \count($doc);
@@ -202,43 +192,13 @@ final class PhpDocAnnotationGenerator extends AbstractAnnotationGenerator
         return $doc;
     }
 
-    /**
-     * Converts a RDF range to a PHPDoc type.
-     */
-    protected function toPhpDocType(array $field, bool $adderOrRemover = false): ?string
+    private function toPhpDocType(array $field): string
     {
-        $suffix = $field['isNullable'] ? '|null' : '';
-        if ($field['isEnum']) {
-            if ($field['isArray']) {
-                return 'string[]'.$suffix;
-            }
-
-            return 'string'.$suffix;
+        $type = $this->toPhpType($field);
+        if ($field['isNullable']) {
+            $type .= '|null';
         }
 
-        if (null !== $phpDocType = $this->phpTypeConverter->getPhpType(['isArray' => false] + $field)) {
-            return ($field['isArray'] ? sprintf('%s[]', $phpDocType) : $phpDocType).$suffix;
-        }
-
-        if (!isset($field['range'])) {
-            return null;
-        }
-
-        $rangeName = $field['rangeName'];
-        $phpDocType = $this->classes[$rangeName]['interfaceName'] ?? $rangeName;
-        if (!$field['isArray'] || $adderOrRemover) {
-            return $phpDocType.$suffix;
-        }
-
-        if ($this->config['doctrine']['useCollection']) {
-            return sprintf('Collection<%s>%s', $phpDocType, $suffix);
-        }
-
-        return sprintf('%s[]%s', $phpDocType, $suffix);
-    }
-
-    private function escapePhpDoc(string $text): string
-    {
-        return str_replace('@', '\\@', $text);
+        return $type;
     }
 }

@@ -11,16 +11,19 @@ types:
             familyName: ~
             givenName: ~
             additionalName: ~
-            address: { range: http://schema.org/PostalAddress }
+            gender: ~
+            address: ~
             birthDate: ~
             telephone: ~
             email: ~
             url: ~
+            jobTitle: ~
     PostalAddress:
         # Disable the generation of the class hierarchy for this type
         parent: false
         properties:
-            addressCountry: { range: http://schema.org/Text }
+            # Force the type of the addressCountry property to text
+            addressCountry: { range: "Text" }
             addressLocality: ~
             addressRegion: ~
             postOfficeBoxNumber: ~

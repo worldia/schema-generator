@@ -36,7 +36,7 @@ use {{ use }};
      * {{ annotation }}
 {% endfor %}
      */
-    public const {{ constant.name }} = '{{ constant.value }}';
+    const {{ constant.name }} = '{{ constant.value }}';
 
 {% endfor %}
 {% for field in class.fields if not field.isTranslated %}
@@ -45,7 +45,7 @@ use {{ use }};
      * {{ annotation }}
 {% endfor %}
      */
-    {{ config.fieldVisibility }} {% if field.typeHint %}{% if field.isNullable %}?{% endif %}{{ field.typeHint }}{% endif%} ${{ field.name }}{% if field.isNullable %} = null{% elseif field.isArray and (field.isEnum or not field.typeHint or field.typeHint == 'array' or not config.doctrine.useCollection) %} = []{% endif %};
+    {{ config.fieldVisibility }} ${{ field.name }}{% if field.isArray and (field.isEnum or not field.typeHint or not config.doctrine.useCollection) %} = []{% endif %};
 
 {% endfor %}
 {% if config.doctrine.useCollection and class.hasConstructor %}
@@ -55,7 +55,7 @@ use {{ use }};
         parent::__construct();
 {% endif %}
 {% for field in class.fields %}
-{% if config.doctrine.useCollection and field.isArray and field.typeHint != 'array' and not field.isEnum %}
+{% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
         $this->{{ field.name }} = new ArrayCollection();
 {% endif %}
 {% endfor %}
@@ -93,10 +93,13 @@ use {{ use }};
      */
     public function remove{{ field.name|singularize|ucfirst }}({% if field.typeHint %}{{ field.adderRemoverTypeHint }} {% endif %}${{ field.name|singularize }}): {% if config.fluentMutatorMethods %}self{% else %}void{% endif %}
     {
-{% if config.doctrine.useCollection and field.isArray and field.typeHint and field.typeHint != 'array' and not field.isEnum %}
-        $this->{{ field.name }}->removeElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
+{% if config.doctrine.useCollection and field.isArray and field.typeHint and not field.isEnum %}
+        if ($this->{{ field.name }}->contains({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }})) {
+            $this->{{ field.name }}->removeElement({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }});
+        }
 {% else %}
-        if (false !== $key = array_search({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }}, $this->{{ field.name }}{% if field.isNullable %} ?? []{% endif %}, true)) {
+        $key = array_search({% if field.isEnum %}(string) {% endif %}${{ field.name|singularize }}, $this->{{ field.name }}, true);
+        if (false !== $key) {
             unset($this->{{ field.name }}[$key]);
         }
 {% endif %}
@@ -138,7 +141,7 @@ use {{ use }};
      * {{ annotation }}
 {% endfor %}
      */
-    public function get{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if field.isNullable and (not field.isArray or field.typeHint == 'array') %}?{% endif %}{{ field.typeHint }}{% endif %}
+    public function {% if field.name|slice(-4) == 'bled' %}is{% else %}get{% endif %}{{ field.name|ucfirst }}(){% if field.typeHint %}: {% if not field.isArray %}?{% endif %}{{ field.typeHint }}{% endif %}
     {
 {% if field.isTranslated and config.translationMethod == 'knp' %}
         return $this->proxyCurrentLocaleTranslation(__FUNCTION__, func_get_args());

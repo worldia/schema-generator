@@ -15,36 +15,28 @@ namespace ApiPlatform\SchemaGenerator\Command;
 
 use ApiPlatform\SchemaGenerator\CardinalitiesExtractor;
 use ApiPlatform\SchemaGenerator\GoodRelationsBridge;
-use ApiPlatform\SchemaGenerator\PhpTypeConverter;
 use ApiPlatform\SchemaGenerator\TypesGenerator;
 use ApiPlatform\SchemaGenerator\TypesGeneratorConfiguration;
-use Doctrine\Inflector\InflectorFactory;
-use EasyRdf\Graph;
+use Doctrine\Common\Inflector\Inflector;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Parser;
-use Twig\Environment;
-use Twig\Extension\DebugExtension;
-use Twig\Loader\FilesystemLoader;
-use Twig\TwigFilter;
 
 /**
  * Generate entities command.
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  */
-final class GenerateCommand extends Command
+final class GenerateTypesCommand extends Command
 {
     private const DEFAULT_CONFIG_FILE = 'schema.yaml';
 
-    private ?string $namespacePrefix = null;
-    private ?string $defaultOutput = null;
+    private $namespacePrefix;
+    private $defaultOutput;
 
     /**
      * {@inheritdoc}
@@ -52,7 +44,7 @@ final class GenerateCommand extends Command
     protected function configure(): void
     {
         if (file_exists('composer.json') && is_file('composer.json') && is_readable('composer.json')) {
-            $composer = json_decode(file_get_contents('composer.json'), true, 512, \JSON_THROW_ON_ERROR);
+            $composer = json_decode(file_get_contents('composer.json'), true);
             foreach ($composer['autoload']['psr-4'] ?? [] as $prefix => $output) {
                 if ('' === $prefix) {
                     continue;
@@ -66,8 +58,8 @@ final class GenerateCommand extends Command
         }
 
         $this
-            ->setName('generate')
-            ->setDescription('Generate the PHP code')
+            ->setName('generate-types')
+            ->setDescription('Generate types')
             ->addArgument('output', $this->defaultOutput ? InputArgument::OPTIONAL : InputArgument::REQUIRED, 'The output directory', $this->defaultOutput)
             ->addArgument('config', InputArgument::OPTIONAL, 'The config file to use (default to "schema.yaml" in the current directory, will generate all types if no config file exists)');
     }
@@ -75,7 +67,7 @@ final class GenerateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $defaultOutput = $this->defaultOutput ? realpath($this->defaultOutput) : null;
         $outputDir = $input->getArgument('output');
@@ -96,8 +88,9 @@ final class GenerateCommand extends Command
             }
 
             $outputDir = $dir;
+        } elseif (!@mkdir($outputDir, 0777, true)) {
+            throw new \InvalidArgumentException(sprintf('Cannot create the "%s" directory. Check that the parent directory is writable.', $outputDir));
         } else {
-            (new Filesystem())->mkdir($outputDir);
             $outputDir = realpath($outputDir);
         }
 
@@ -122,13 +115,6 @@ final class GenerateCommand extends Command
             $config = $parser->parse(file_get_contents(self::DEFAULT_CONFIG_FILE));
             unset($parser);
         } else {
-            $helper = $this->getHelper('question');
-            $question = new ConfirmationQuestion('Your project has no config file. The entire vocabulary will be imported.'.\PHP_EOL.'Continue? [yN]', false);
-
-            if (!$helper->ask($input, $output, $question)) {
-                return 0;
-            }
-
             $config = [];
         }
 
@@ -141,12 +127,12 @@ final class GenerateCommand extends Command
         }
 
         $graphs = [];
-        foreach ($processedConfiguration['vocabularies'] as $vocab) {
-            $graph = new Graph();
-            if (0 === strpos($vocab['uri'], 'http://') || 0 === strpos($vocab['uri'], 'https://')) {
-                $graph->load($vocab['uri'], $vocab['format']);
+        foreach ($processedConfiguration['rdfa'] as $rdfa) {
+            $graph = new \EasyRdf_Graph();
+            if ('http://' === substr($rdfa['uri'], 0, 7) || 'https://' === substr($rdfa['uri'], 0, 8)) {
+                $graph->load($rdfa['uri'], $rdfa['format']);
             } else {
-                $graph->parseFile($vocab['uri'], $vocab['format']);
+                $graph->parseFile($rdfa['uri'], $rdfa['format']);
             }
 
             $graphs[] = $graph;
@@ -160,26 +146,19 @@ final class GenerateCommand extends Command
         $goodRelationsBridge = new GoodRelationsBridge($relations);
         $cardinalitiesExtractor = new CardinalitiesExtractor($graphs, $goodRelationsBridge);
 
-        $templatePaths = $processedConfiguration['generatorTemplates'];
-        $templatePaths[] = __DIR__.'/../../templates/';
-
-        $inflector = InflectorFactory::create()->build();
-
-        $loader = new FilesystemLoader($templatePaths);
-        $twig = new Environment($loader, ['autoescape' => false, 'debug' => $processedConfiguration['debug']]);
-        $twig->addFilter(new TwigFilter('ucfirst', 'ucfirst'));
-        $twig->addFilter(new TwigFilter('pluralize', [$inflector, 'pluralize']));
-        $twig->addFilter(new TwigFilter('singularize', [$inflector, 'singularize']));
+        $loader = new \Twig_Loader_Filesystem(__DIR__.'/../../templates/');
+        $twig = new \Twig_Environment($loader, ['autoescape' => false, 'debug' => $processedConfiguration['debug']]);
+        $twig->addFilter(new \Twig_SimpleFilter('ucfirst', 'ucfirst'));
+        $twig->addFilter(new \Twig_SimpleFilter('pluralize', [Inflector::class, 'pluralize']));
+        $twig->addFilter(new \Twig_SimpleFilter('singularize', [Inflector::class, 'singularize']));
 
         if ($processedConfiguration['debug']) {
-            $twig->addExtension(new DebugExtension());
+            $twig->addExtension(new \Twig_Extension_Debug());
         }
 
         $logger = new ConsoleLogger($output);
 
-        $entitiesGenerator = new TypesGenerator($inflector, $twig, $logger, $graphs, new PhpTypeConverter(), $cardinalitiesExtractor, $goodRelationsBridge);
+        $entitiesGenerator = new TypesGenerator($twig, $logger, $graphs, $cardinalitiesExtractor, $goodRelationsBridge);
         $entitiesGenerator->generate($processedConfiguration);
-
-        return 0;
     }
 }

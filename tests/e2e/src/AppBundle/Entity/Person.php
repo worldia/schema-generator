@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace AppBundle\Entity;
 
 use ApiPlatform\Core\Annotation\ApiProperty;
 use ApiPlatform\Core\Annotation\ApiResource;
@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * A person (alive, dead, undead, or fictional).
  *
- * @see http://schema.org/Person
+ * @see http://schema.org/Person Documentation on Schema.org
  *
  * @ORM\Entity
  * @ApiResource(iri="http://schema.org/Person")
@@ -20,94 +20,96 @@ use Symfony\Component\Validator\Constraints as Assert;
 class Person
 {
     /**
+     * @var int|null
+     *
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      * @ORM\Column(type="integer")
      */
-    private ?int $id = null;
+    private $id;
 
     /**
-     * Family name. In the U.S., the last name of a Person.
-     *
-     * @see http://schema.org/familyName
+     * @var string|null Family name. In the U.S., the last name of an Person. This can be used along with givenName instead of the name property.
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/familyName")
      */
-    private ?string $familyName = null;
+    private $familyName;
 
     /**
-     * Given name. In the U.S., the first name of a Person.
-     *
-     * @see http://schema.org/givenName
+     * @var string|null Given name. In the U.S., the first name of a Person. This can be used along with familyName instead of the name property.
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/givenName")
      */
-    private ?string $givenName = null;
+    private $givenName;
 
     /**
-     * An additional name for a Person, can be used for a middle name.
-     *
-     * @see http://schema.org/additionalName
+     * @var string|null an additional name for a Person, can be used for a middle name
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/additionalName")
      */
-    private ?string $additionalName = null;
+    private $additionalName;
 
     /**
-     * Physical address of the item.
+     * @var string|null Gender of the person. While http://schema.org/Male and http://schema.org/Female may be used, text strings are also acceptable for people who do not identify as a binary gender.
      *
-     * @see http://schema.org/address
+     * @ORM\Column(type="text", nullable=true)
+     * @ApiProperty(iri="http://schema.org/gender")
+     */
+    private $gender;
+
+    /**
+     * @var PostalAddress|null physical address of the item
      *
-     * @ORM\ManyToOne(targetEntity="App\Entity\PostalAddress")
+     * @ORM\ManyToOne(targetEntity="AppBundle\Entity\PostalAddress")
      * @ApiProperty(iri="http://schema.org/address")
      */
-    private ?PostalAddress $address = null;
+    private $address;
 
     /**
-     * Date of birth.
-     *
-     * @see http://schema.org/birthDate
+     * @var \DateTimeInterface|null date of birth
      *
      * @ORM\Column(type="date", nullable=true)
      * @ApiProperty(iri="http://schema.org/birthDate")
      * @Assert\Date
      */
-    private ?\DateTimeInterface $birthDate = null;
+    private $birthDate;
 
     /**
-     * The telephone number.
-     *
-     * @see http://schema.org/telephone
+     * @var string|null the telephone number
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/telephone")
      */
-    private ?string $telephone = null;
+    private $telephone;
 
     /**
-     * Email address.
-     *
-     * @see http://schema.org/email
+     * @var string|null email address
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/email")
      * @Assert\Email
      */
-    private ?string $email = null;
+    private $email;
 
     /**
-     * URL of the item.
-     *
-     * @see http://schema.org/url
+     * @var string|null URL of the item
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/url")
      * @Assert\Url
      */
-    private ?string $url = null;
+    private $url;
+
+    /**
+     * @var string|null the job title of the person (for example, Financial Manager)
+     *
+     * @ORM\Column(type="text", nullable=true)
+     * @ApiProperty(iri="http://schema.org/jobTitle")
+     */
+    private $jobTitle;
 
     public function getId(): ?int
     {
@@ -142,6 +144,16 @@ class Person
     public function getAdditionalName(): ?string
     {
         return $this->additionalName;
+    }
+
+    public function setGender(?string $gender): void
+    {
+        $this->gender = $gender;
+    }
+
+    public function getGender(): ?string
+    {
+        return $this->gender;
     }
 
     public function setAddress(?PostalAddress $address): void
@@ -192,5 +204,15 @@ class Person
     public function getUrl(): ?string
     {
         return $this->url;
+    }
+
+    public function setJobTitle(?string $jobTitle): void
+    {
+        $this->jobTitle = $jobTitle;
+    }
+
+    public function getJobTitle(): ?string
+    {
+        return $this->jobTitle;
     }
 }

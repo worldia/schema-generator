@@ -13,9 +13,6 @@ declare(strict_types=1);
 
 namespace ApiPlatform\SchemaGenerator\AnnotationGenerator;
 
-use ApiPlatform\SchemaGenerator\PhpTypeConverterInterface;
-use Doctrine\Inflector\Inflector;
-use EasyRdf\Graph;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -25,21 +22,36 @@ use Psr\Log\LoggerInterface;
  */
 abstract class AbstractAnnotationGenerator implements AnnotationGeneratorInterface
 {
-    protected PhpTypeConverterInterface $phpTypeConverter;
-    protected Inflector $inflector;
-    protected LoggerInterface $logger;
     /**
-     * @var Graph[]
+     * @var LoggerInterface
      */
-    protected array $graphs;
-    protected array $cardinalities;
-    protected array $config;
-    protected array $classes;
+    protected $logger;
 
-    public function __construct(PhpTypeConverterInterface $phpTypeConverter, LoggerInterface $logger, Inflector $inflector, array $graphs, array $cardinalities, array $config, array $classes)
+    /**
+     * @var \EasyRdf_Graph[]
+     */
+    protected $graphs;
+
+    /**
+     * @var array
+     */
+    protected $cardinalities;
+
+    /**
+     * @var array
+     */
+    protected $config;
+
+    /**
+     * @var array
+     */
+    protected $classes;
+
+    /**
+     * {@inheritdoc}
+     */
+    public function __construct(LoggerInterface $logger, array $graphs, array $cardinalities, array $config, array $classes)
     {
-        $this->phpTypeConverter = $phpTypeConverter;
-        $this->inflector = $inflector;
         $this->logger = $logger;
         $this->graphs = $graphs;
         $this->cardinalities = $cardinalities;

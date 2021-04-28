@@ -29,14 +29,18 @@ final class DoctrineMongoDBAnnotationGenerator extends AbstractAnnotationGenerat
     public function generateClassAnnotations(string $className): array
     {
         $class = $this->classes[$className];
+
         if ($class['isEnum']) {
             return [];
         }
 
-        return [
-            '',
-            $this->config['types'][$class['name']]['doctrine']['inheritanceMapping'] ?? ($class['abstract'] ? '@MongoDB\MappedSuperclass' : '@MongoDB\Document'),
-        ];
+        if (isset($this->config['types'][$class['resource']->localName()]['doctrine']['inheritanceMapping'])) {
+            $inheritanceMapping = $this->config['types'][$class['resource']->localName()]['doctrine']['inheritanceMapping'];
+        } else {
+            $inheritanceMapping = $class['abstract'] ? '@MongoDB\MappedSuperclass' : '@MongoDB\Document';
+        }
+
+        return ['', $inheritanceMapping];
     }
 
     /**
@@ -45,68 +49,64 @@ final class DoctrineMongoDBAnnotationGenerator extends AbstractAnnotationGenerat
     public function generateFieldAnnotations(string $className, string $fieldName): array
     {
         $field = $this->classes[$className]['fields'][$fieldName];
-        if (null === $field['range']) {
-            return [];
-        }
-
-        $field = $this->classes[$className]['fields'][$fieldName];
         if ($field['isId']) {
             return $this->generateIdAnnotations();
         }
 
-        $type = null;
+        $annotations = [];
+
         if ($field['isEnum']) {
             $type = $field['isArray'] ? 'simple_array' : 'string';
-        } elseif ($field['isArray'] ?? false) {
-            $type = 'collection';
-        } elseif (null !== $phpType = $this->phpTypeConverter->getPhpType($field, $this->config, [])) {
-            switch ($field['range']->getUri()) {
-                case 'http://www.w3.org/2001/XMLSchema#time':
-                case 'http://schema.org/Time':
-                    $type = 'time';
+        } else {
+            switch ($field['range']) {
+                case 'Boolean':
+                    $type = 'boolean';
                     break;
-                case 'http://www.w3.org/2001/XMLSchema#dateTime':
-                case 'http://schema.org/DateTime':
+                case 'Date':
+                case 'DateTime':
                     $type = 'date';
                     break;
-                default:
-                    $type = $phpType;
-                    switch ($phpType) {
-                        case 'bool':
-                            $type = 'boolean';
-                            break;
-                        case 'int':
-                            $type = 'integer';
-                            break;
-                        case '\\'.\DateTimeInterface::class:
-                            $type = 'date';
-                            break;
-                        case '\\'.\DateInterval::class:
-                            $type = 'string';
-                            break;
-                    }
+                case 'Time':
+                    $type = 'time';
+                    break;
+                case 'Number':
+                case 'Float':
+                    $type = 'float';
+                    break;
+                case 'Integer':
+                    $type = 'integer';
+                    break;
+                case 'Text':
+                case 'URL':
+                    $type = 'string';
                     break;
             }
         }
 
-        if (null !== $type) {
-            return [sprintf('@MongoDB\Field(type="%s")', $type)];
-        }
+        if (isset($type)) {
+            $annotation = '@MongoDB\Field';
 
-        if (CardinalitiesExtractor::CARDINALITY_0_1 === $field['cardinality']
+            if ($field['isArray']) {
+                $type = 'collection';
+            }
+
+            $annotation .= sprintf('(type="%s")', $type);
+
+            $annotations[] = $annotation;
+        } else {
+            if (CardinalitiesExtractor::CARDINALITY_0_1 === $field['cardinality']
                 || CardinalitiesExtractor::CARDINALITY_1_1 === $field['cardinality']
                 || CardinalitiesExtractor::CARDINALITY_N_0 === $field['cardinality']
                 || CardinalitiesExtractor::CARDINALITY_N_1 === $field['cardinality']) {
-            return [sprintf('@MongoDB\ReferenceOne(targetDocument="%s", simple=true))', $this->getRelationName($field['rangeName']))];
-        }
-
-        if (CardinalitiesExtractor::CARDINALITY_0_N === $field['cardinality']
+                $annotations[] = sprintf('@MongoDB\ReferenceOne(targetDocument="%s", simple=true))', $this->getRelationName($field['range']));
+            } elseif (CardinalitiesExtractor::CARDINALITY_0_N === $field['cardinality']
                 || CardinalitiesExtractor::CARDINALITY_1_N === $field['cardinality']
                 || CardinalitiesExtractor::CARDINALITY_N_N === $field['cardinality']) {
-            return [sprintf('@MongoDB\ReferenceMany(targetDocument="%s", simple=true)', $this->getRelationName($field['rangeName']))];
+                $annotations[] = sprintf('@MongoDB\ReferenceMany(targetDocument="%s", simple=true)', $this->getRelationName($field['range']));
+            }
         }
 
-        return [];
+        return $annotations;
     }
 
     /**
@@ -125,9 +125,11 @@ final class DoctrineMongoDBAnnotationGenerator extends AbstractAnnotationGenerat
     /**
      * Gets class or interface name to use in relations.
      */
-    private function getRelationName(string $rangeName): string
+    private function getRelationName(string $range): string
     {
-        return $this->classes[$rangeName]['interfaceName'] ?? $rangeName;
+        $class = $this->classes[$range];
+
+        return $class[$range]['interfaceName'] ?? $class['name'];
     }
 
     private function generateIdAnnotations(): array

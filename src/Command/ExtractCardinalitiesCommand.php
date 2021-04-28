@@ -16,7 +16,6 @@ namespace ApiPlatform\SchemaGenerator\Command;
 use ApiPlatform\SchemaGenerator\CardinalitiesExtractor;
 use ApiPlatform\SchemaGenerator\GoodRelationsBridge;
 use ApiPlatform\SchemaGenerator\TypesGeneratorConfiguration;
-use EasyRdf\Graph;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -37,38 +36,34 @@ final class ExtractCardinalitiesCommand extends Command
         $this
             ->setName('extract-cardinalities')
             ->setDescription('Extract properties\' cardinality')
-            ->addOption('vocabulary-file', 'v', InputOption::VALUE_REQUIRED, 'The path or URL of the vocabulary RDF file to use.', TypesGeneratorConfiguration::SCHEMA_ORG_URI)
-            ->addOption('cardinality-file', 'g', InputOption::VALUE_REQUIRED, 'The path or URL of the OWL file containing the cardinality definitions.', TypesGeneratorConfiguration::GOOD_RELATIONS_URI)
+            ->addOption('schemaorg-file', 's', InputOption::VALUE_REQUIRED, 'The path or URL of the Schema.org RDFa file to use.', TypesGeneratorConfiguration::SCHEMA_ORG_RDFA_URL)
+            ->addOption('goodrelations-file', 'g', InputOption::VALUE_REQUIRED, 'The path or URL of the GoodRelations OWL file to use.', TypesGeneratorConfiguration::GOOD_RELATIONS_OWL_URL)
         ;
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function execute(InputInterface $input, OutputInterface $output): void
     {
-        $vocabFile = $input->getOption('vocabulary-file');
+        $schemaOrgFile = $input->getOption('schemaorg-file');
 
         $relations = [];
-        $graph = new Graph();
-
-        $format = pathinfo($vocabFile, \PATHINFO_EXTENSION) ?: 'guess';
-        if (0 === strpos($vocabFile, 'http://') || 0 === strpos($vocabFile, 'https://')) {
-            $graph->load($input->getOption('vocabulary-file'), $format);
+        $schemaOrg = new \EasyRdf_Graph();
+        if ('http://' === substr($schemaOrgFile, 0, 7) || 'https://' === substr($schemaOrgFile, 0, 8)) {
+            $schemaOrg->load($input->getOption('schemaorg-file'), 'rdfa');
         } else {
-            $graph->parseFile($input->getOption('vocabulary-file'), $format);
+            $schemaOrg->parseFile($input->getOption('schemaorg-file'), 'rdfa');
         }
 
-        $relations[] = $graph;
+        $relations[] = $schemaOrg;
 
-        $cardinality = [new \SimpleXMLElement($input->getOption('cardinality-file'), 0, true)];
+        $goodRelations = [new \SimpleXMLElement($input->getOption('goodrelations-file'), 0, true)];
 
-        $goodRelationsBridge = new GoodRelationsBridge($cardinality);
+        $goodRelationsBridge = new GoodRelationsBridge($goodRelations);
         $cardinalitiesExtractor = new CardinalitiesExtractor($relations, $goodRelationsBridge);
         $result = $cardinalitiesExtractor->extract();
 
-        $output->writeln(json_encode($result, \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT));
-
-        return 0;
+        $output->writeln(json_encode($result, JSON_PRETTY_PRINT));
     }
 }

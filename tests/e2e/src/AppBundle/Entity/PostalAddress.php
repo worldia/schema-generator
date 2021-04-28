@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace AppBundle\Entity;
 
 use ApiPlatform\Core\Annotation\ApiProperty;
 use ApiPlatform\Core\Annotation\ApiResource;
@@ -11,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * The mailing address.
  *
- * @see http://schema.org/PostalAddress
+ * @see http://schema.org/PostalAddress Documentation on Schema.org
  *
  * @ORM\Entity
  * @ApiResource(iri="http://schema.org/PostalAddress")
@@ -19,71 +19,61 @@ use Doctrine\ORM\Mapping as ORM;
 class PostalAddress
 {
     /**
+     * @var int|null
+     *
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
      * @ORM\Column(type="integer")
      */
-    private ?int $id = null;
+    private $id;
 
     /**
-     * The country. For example, USA. You can also provide the two-letter \[ISO 3166-1 alpha-2 country code\](http://en.wikipedia.org/wiki/ISO\_3166-1).
-     *
-     * @see http://schema.org/addressCountry
+     * @var string|null The country. For example, USA. You can also provide the two-letter \[ISO 3166-1 alpha-2 country code\](http://en.wikipedia.org/wiki/ISO\_3166-1).
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/addressCountry")
      */
-    private ?string $addressCountry = null;
+    private $addressCountry;
 
     /**
-     * The locality in which the street address is, and which is in the region. For example, Mountain View.
-     *
-     * @see http://schema.org/addressLocality
+     * @var string|null The locality. For example, Mountain View.
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/addressLocality")
      */
-    private ?string $addressLocality = null;
+    private $addressLocality;
 
     /**
-     * The region in which the locality is, and which is in the country. For example, California or another appropriate first-level \[Administrative division\](https://en.wikipedia.org/wiki/List\_of\_administrative\_divisions\_by\_country).
-     *
-     * @see http://schema.org/addressRegion
+     * @var string|null The region. For example, CA.
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/addressRegion")
      */
-    private ?string $addressRegion = null;
+    private $addressRegion;
 
     /**
-     * The post office box number for PO box addresses.
-     *
-     * @see http://schema.org/postOfficeBoxNumber
+     * @var string|null the post office box number for PO box addresses
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/postOfficeBoxNumber")
      */
-    private ?string $postOfficeBoxNumber = null;
+    private $postOfficeBoxNumber;
 
     /**
-     * The postal code. For example, 94043.
-     *
-     * @see http://schema.org/postalCode
+     * @var string|null The postal code. For example, 94043.
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/postalCode")
      */
-    private ?string $postalCode = null;
+    private $postalCode;
 
     /**
-     * The street address. For example, 1600 Amphitheatre Pkwy.
-     *
-     * @see http://schema.org/streetAddress
+     * @var string|null The street address. For example, 1600 Amphitheatre Pkwy.
      *
      * @ORM\Column(type="text", nullable=true)
      * @ApiProperty(iri="http://schema.org/streetAddress")
      */
-    private ?string $streetAddress = null;
+    private $streetAddress;
 
     public function getId(): ?int
     {

@@ -1,6 +1,5 @@
-/box.json
-/build/
-/vendor/
-/*.phar
-/.phpunit.result.cache
-/tmp
+/composer.phar
+/box.phar
+/vendor
+/build
+/schema.phar

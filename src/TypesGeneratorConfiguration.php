@@ -28,11 +28,18 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  */
 final class TypesGeneratorConfiguration implements ConfigurationInterface
 {
-    public const SCHEMA_ORG_URI = 'https://schema.org/version/latest/schemaorg-current-http.rdf';
-    public const GOOD_RELATIONS_URI = 'https://purl.org/goodrelations/v1.owl';
+    /**
+     * @see https://schema.org/docs/schema_org_rdfa.html
+     */
+    public const SCHEMA_ORG_RDFA_URL = __DIR__.'/../data/schema.rdfa';
+
+    /**
+     * @see https://purl.org/goodrelations/v1.owl
+     */
+    public const GOOD_RELATIONS_OWL_URL = __DIR__.'/../data/v1.owl';
     public const SCHEMA_ORG_NAMESPACE = 'http://schema.org/';
 
-    private ?string $defaultPrefix;
+    private $defaultPrefix;
 
     public function __construct(?string $defaultPrefix = null)
     {
@@ -44,39 +51,37 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
      */
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $namespacePrefix = $this->defaultPrefix ?? 'App\\';
+        $namespacePrefix = $this->defaultPrefix ?? 'AppBundle\\';
 
-        $treeBuilder = new TreeBuilder('config');
-
-        $treeBuilder
-            ->getRootNode()
+        $treeBuilder = new TreeBuilder();
+        $rootNode = $treeBuilder->root('config');
+        $rootNode
             ->children()
-                ->arrayNode('vocabularies')
-                    ->info('RDF vocabularies')
-                    ->defaultValue([['uri' => self::SCHEMA_ORG_URI, 'format' => 'rdfxml']])
+                ->arrayNode('rdfa')
+                    ->info('RDFa files')
+                    ->defaultValue([['uri' => self::SCHEMA_ORG_RDFA_URL, 'format' => 'rdfa']])
                     ->beforeNormalization()
                         ->ifArray()
-                        ->then(static function (array $v) {
+                        ->then(function (array $v) {
                             return array_map(
-                                static function ($rdf) {
-                                    return is_scalar($rdf) ? ['uri' => $rdf, 'format' => null] : $rdf;
+                                function ($rdfa) {
+                                    return is_scalar($rdfa) ? ['uri' => $rdfa, 'format' => null] : $rdfa;
                                 },
                                 $v
                             );
                         })
                     ->end()
-                    ->arrayPrototype()
+                    ->prototype('array')
                         ->children()
-                            ->scalarNode('uri')->defaultValue(self::SCHEMA_ORG_URI)->info('RDF vocabulary to use')->example('https://schema.org/version/latest/schemaorg-current-http.rdf')->end()
-                            ->scalarNode('format')->defaultNull()->info('RDF vocabulary format')->example('rdfxml')->end()
+                            ->scalarNode('uri')->defaultValue(self::SCHEMA_ORG_RDFA_URL)->info('RDFa URI to use')->example('https://schema.org/docs/schema_org_rdfa.html')->end()
+                            ->scalarNode('format')->defaultNull()->info('RDFa URI data format')->example('rdfxml')->end()
                         ->end()
                     ->end()
                 ->end()
-                ->scalarNode('vocabularyNamespace')->defaultValue(self::SCHEMA_ORG_NAMESPACE)->info('Namespace of the vocabulary to import')->example('http://www.w3.org/ns/activitystreams#')->end()
                 ->arrayNode('relations')
-                    ->info('OWL relation files containing cardinality information in the GoodRelations format')
+                    ->info('OWL relation files to use')
                     ->example('https://purl.org/goodrelations/v1.owl')
-                    ->defaultValue([self::GOOD_RELATIONS_URI])
+                    ->defaultValue([self::GOOD_RELATIONS_OWL_URL])
                     ->prototype('scalar')->end()
                 ->end()
                 ->booleanNode('debug')->defaultFalse()->info('Debug mode')->end()
@@ -87,7 +92,6 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                         ->booleanNode('generate')->defaultTrue()->info('Automatically add an id field to entities')->end()
                         ->enumNode('generationStrategy')->defaultValue('auto')->values(['auto', 'none', 'uuid', 'mongoid'])->info('The ID generation strategy to use ("none" to not let the database generate IDs).')->end()
                         ->booleanNode('writable')->defaultFalse()->info('Is the ID writable? Only applicable if "generationStrategy" is "uuid".')->end()
-                        ->enumNode('onClass')->defaultValue('child')->values(['child', 'parent'])->info('Set to "child" to generate the id on the child class, and "parent" to use the parent class instead.')->end()
                     ->end()
                 ->end()
                 ->booleanNode('useInterface')->defaultFalse()->info('Generate interfaces and use Doctrine\'s Resolve Target Entity feature')->end()
@@ -112,10 +116,6 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                     ->children()
                         ->booleanNode('useCollection')->defaultTrue()->info('Use Doctrine\'s ArrayCollection instead of standard arrays')->end()
                         ->scalarNode('resolveTargetEntityConfigPath')->defaultNull()->info('The Resolve Target Entity Listener config file pass')->end()
-                        ->arrayNode('inheritanceAnnotations')
-                            ->info('Doctrine inheritance annotations (if set, no other annotations are generated)')
-                            ->prototype('scalar')->end()
-                        ->end()
                     ->end()
                 ->end()
                 ->arrayNode('validator')
@@ -129,28 +129,24 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                 ->enumNode('fieldVisibility')->values(['private', 'protected', 'public'])->defaultValue('private')->cannotBeEmpty()->info('Visibility of entities fields')->end()
                 ->booleanNode('accessorMethods')->defaultTrue()->info('Set this flag to false to not generate getter, setter, adder and remover methods')->end()
                 ->booleanNode('fluentMutatorMethods')->defaultFalse()->info('Set this flag to true to generate fluent setter, adder and remover methods')->end()
-                ->arrayNode('rangeMapping')
-                    ->useAttributeAsKey('name')
-                    ->prototype('scalar')->end()
-                ->end()
-                ->booleanNode('allTypes')->defaultFalse()->info('Generate all types, even if an explicit configuration exists')->end()
                 ->arrayNode('types')
                     ->beforeNormalization()
                         ->always()
-                        ->then(static function ($v) {
+                        ->then(function ($v) {
                             foreach ($v as $key => $type) {
-                                $v[$key]['allProperties'] ??= !isset($type['properties']);
+                                if (!isset($type['properties'])) {
+                                    $v[$key]['allProperties'] = true;
+                                }
                             }
 
                             return $v;
                         })
                     ->end()
-                    ->info('Types to import from the vocabulary')
+                    ->info('Schema.org\'s types to use')
                     ->useAttributeAsKey('id')
-                    ->arrayPrototype()
+                    ->prototype('array')
                         ->children()
-                            ->booleanNode('exclude')->defaultFalse()->info('Exclude this type, even if "allTypes" is set to true"')->end()
-                            ->scalarNode('vocabularyNamespace')->defaultNull()->info('Namespace of the vocabulary of this type (defaults to the global "vocabularyNamespace" entry)')->example('http://www.w3.org/ns/activitystreams#')->end()
+                            ->scalarNode('vocabularyNamespace')->defaultValue(self::SCHEMA_ORG_NAMESPACE)->info('Namespace of the vocabulary the type belongs to.')->end()
                             ->booleanNode('abstract')->defaultNull()->info('Is the class abstract? (null to guess)')->end()
                             ->booleanNode('embeddable')->defaultFalse()->info('Is the class embeddable?')->end()
                             ->booleanNode('enum')->defaultFalse()->info('Is this class an enum?')->end()
@@ -165,10 +161,7 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                             ->arrayNode('doctrine')
                                 ->addDefaultsIfNotSet()
                                 ->children()
-                                    ->arrayNode('annotations')
-                                        ->info('Doctrine annotations (if set, no other annotations are generated)')
-                                        ->prototype('scalar')->end()
-                                    ->end()
+                                    ->scalarNode('inheritanceMapping')->defaultNull()->info('The Doctrine inheritance mapping type (override the guessed one)')->end()
                                 ->end()
                             ->end()
                             ->scalarNode('parent')->defaultFalse()->info('The parent class, set to false for a top level class')->end()
@@ -194,10 +187,9 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                             ->arrayNode('properties')
                                 ->info('Properties of this type to use')
                                 ->useAttributeAsKey('id')
-                                ->arrayPrototype()
+                                ->prototype('array')
                                     ->addDefaultsIfNotSet()
                                     ->children()
-                                        ->booleanNode('exclude')->defaultFalse()->info('Exclude this property, even if "allProperties" is set to true"')->end()
                                         ->scalarNode('range')->defaultNull()->info('The property range')->example('Offer')->end()
                                         ->scalarNode('relationTableName')->defaultNull()->info('The relation table name')->example('organization_member')->end()
                                         ->enumNode('cardinality')->defaultValue(CardinalitiesExtractor::CARDINALITY_UNKNOWN)->values([
@@ -215,8 +207,6 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                                             ->info('Symfony Serialization Groups')
                                             ->prototype('scalar')->end()
                                         ->end()
-                                        ->scalarNode('mappedBy')->defaultNull()->info('The doctrine mapped by attribute')->example('partOfSeason')->end()
-                                        ->scalarNode('inversedBy')->defaultNull()->info('The doctrine inversed by attribute')->example('episodes')->end()
                                         ->booleanNode('readable')->defaultTrue()->info('Is the property readable?')->end()
                                         ->booleanNode('writable')->defaultTrue()->info('Is the property writable?')->end()
                                         ->booleanNode('nullable')->defaultTrue()->info('Is the property nullable?')->end()
@@ -240,10 +230,6 @@ final class TypesGeneratorConfiguration implements ConfigurationInterface
                         ConstraintAnnotationGenerator::class,
                         SerializerGroupsAnnotationGenerator::class,
                     ])
-                    ->prototype('scalar')->end()
-                ->end()
-                ->arrayNode('generatorTemplates')
-                    ->info('Directories for custom generator twig templates')
                     ->prototype('scalar')->end()
                 ->end()
             ->end();
